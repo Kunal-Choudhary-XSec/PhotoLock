@@ -1,0 +1,400 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>PhotoLock — Image Steganography</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+    <main class="layout" data-mode="{{ 'reveal' if reveal_error is defined or revealed_message is defined else 'hide' }}">
+        <aside class="art-panel" aria-hidden="true">
+            <svg class="vault-art" viewBox="0 0 360 420" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M56 77H275V296H56V77Z" fill="#FFF7ED" stroke="#292524" stroke-width="8"/>
+                <path d="M76 97H255V276H76V97Z" fill="#FDBA74" stroke="#292524" stroke-width="5"/>
+                <path d="M77 243L132 181L173 222L207 188L255 240V276H77V243Z" fill="#F97316" stroke="#292524" stroke-width="5" stroke-linejoin="round"/>
+                <circle cx="211" cy="142" r="20" fill="#FFF7ED" stroke="#292524" stroke-width="5"/>
+                <path d="M126 77V57C126 34.9086 143.909 17 166 17C188.091 17 206 34.9086 206 57V77" stroke="#292524" stroke-width="12"/>
+                <rect x="131" y="146" width="70" height="66" fill="#F97316" stroke="#292524" stroke-width="8"/>
+                <path d="M166 168V190" stroke="#292524" stroke-width="8" stroke-linecap="square"/>
+                <rect x="28" y="324" width="42" height="42" fill="#F97316" stroke="#292524" stroke-width="6"/>
+                <rect x="87" y="324" width="42" height="42" fill="#FDBA74" stroke="#292524" stroke-width="6"/>
+                <rect x="146" y="324" width="42" height="42" fill="#292524" stroke="#292524" stroke-width="6"/>
+                <rect x="205" y="324" width="42" height="42" fill="#F97316" stroke="#292524" stroke-width="6"/>
+                <rect x="264" y="324" width="42" height="42" fill="#FDBA74" stroke="#292524" stroke-width="6"/>
+                <path d="M281 78L308 51M297 100L329 100M39 142L18 121" stroke="#292524" stroke-width="7" stroke-linecap="square"/>
+                <circle cx="302" cy="251" r="11" fill="#EA580C" stroke="#292524" stroke-width="5"/>
+            </svg>
+        </aside>
+
+        <section class="vault-card" aria-labelledby="page-title">
+            <header class="card-heading">
+                <p class="kicker">IMAGE STEGANOGRAPHY</p>
+                <h1 id="page-title">PhotoLock</h1>
+                <p class="subheading">A little secret, tucked into a picture.</p>
+            </header>
+
+            <div class="tabs" role="tablist" aria-label="Choose an action">
+                <button class="tab" id="hide-tab" type="button" role="tab" aria-selected="true" aria-controls="vault-form" data-mode="hide">HIDE MESSAGE</button>
+                <button class="tab" id="reveal-tab" type="button" role="tab" aria-selected="false" aria-controls="vault-form" data-mode="reveal">REVEAL MESSAGE</button>
+            </div>
+
+            {% if general_error %}
+                <p class="notice error" role="alert">{{ general_error }}</p>
+            {% endif %}
+            {% if hide_error %}
+                <p class="notice error" role="alert">{{ hide_error }}</p>
+            {% endif %}
+            {% if reveal_error %}
+                <p class="notice error" role="alert">{{ reveal_error }}</p>
+            {% endif %}
+            <p class="notice error" id="client-error" role="alert" hidden></p>
+
+            <form id="vault-form" action="{{ url_for('hide') }}" method="post" enctype="multipart/form-data">
+                <label class="field-label" for="image-file">PNG IMAGE</label>
+                <div class="upload-box" id="upload-box">
+                    <input class="file-input" id="image-file" name="image" type="file" accept="image/png">
+                    <div class="upload-empty" id="upload-empty">
+                        <span class="upload-symbol" aria-hidden="true">
+                            <svg viewBox="0 0 32 32" fill="none">
+                                <path d="M16 21V5M10 11L16 5L22 11M5 19V26H27V19" stroke="currentColor" stroke-width="3" stroke-linecap="square" stroke-linejoin="miter"/>
+                            </svg>
+                        </span>
+                        <strong>DROP YOUR PNG HERE</strong>
+                        <span>or</span>
+                        <button class="browse-button" id="browse-button" type="button">BROWSE FILES</button>
+                    </div>
+                    <div class="image-preview" id="image-preview" hidden>
+                        <img id="preview-image" alt="Selected image preview">
+                        <div class="preview-details">
+                            <span class="file-name" id="file-name"></span>
+                            <button class="clear-button" id="clear-button" type="button">CLEAR IMAGE</button>
+                        </div>
+                    </div>
+                </div>
+                <p class="upload-help">PNG only, up to 16 MB. Longer messages need larger images.</p>
+
+                <div class="form-field" id="message-field">
+                    <label class="field-label" for="message">SECRET MESSAGE</label>
+                    <textarea id="message" name="message" rows="3" placeholder="Type your secret text..." required></textarea>
+                </div>
+
+                <div class="form-field">
+                    <label class="field-label" for="password">PASSWORD KEY</label>
+                    <div class="password-control">
+                        <input id="password" name="password" type="password" placeholder="Enter a password" autocomplete="current-password" required>
+                        <button class="password-toggle" id="password-toggle" type="button" aria-label="Show password" title="Show password">
+                            <svg viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                                <path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12Z" stroke="currentColor" stroke-width="2"/>
+                                <circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="2"/>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+
+                <button class="action-button" id="action-button" type="submit">HIDE &amp; DOWNLOAD PNG</button>
+            </form>
+
+            <p class="notice success" id="operation-status" role="status" aria-live="polite" hidden></p>
+
+            <section class="result" id="result-panel" aria-live="polite" {% if revealed_message is not defined %}hidden{% endif %}>
+                <h2>HIDDEN MESSAGE</h2>
+                <p id="revealed-message">{% if revealed_message is defined %}{{ revealed_message }}{% endif %}</p>
+                <button class="copy-button" id="copy-button" type="button">COPY MESSAGE</button>
+                <p class="copy-status" id="copy-status" role="status" aria-live="polite"></p>
+            </section>
+
+            <p class="privacy-note">Your image stays on this device while you work.</p>
+            <a class="reset-link" href="{{ url_for('index') }}">START OVER</a>
+        </section>
+
+        <div class="right-column">
+            <aside class="guide-card" aria-labelledby="guide-title">
+                <h2 id="guide-title">HOW TO USE</h2>
+                <ol class="steps">
+                    <li>
+                        <span class="step-icon" aria-hidden="true">
+                            <svg viewBox="0 0 32 32" fill="none"><path d="M5 7H27V25H5V7Z" stroke="currentColor" stroke-width="2.5"/><path d="M7 22L13 15L18 20L21 17L26 22" stroke="currentColor" stroke-width="2.5" stroke-linejoin="round"/><circle cx="21" cy="12" r="2" fill="currentColor"/></svg>
+                        </span>
+                        <span><b>1.</b><span>Upload a PNG image</span></span>
+                    </li>
+                    <li>
+                        <span class="step-icon" aria-hidden="true">
+                            <svg viewBox="0 0 32 32" fill="none"><path d="M7 6H25V26H7V6Z" stroke="currentColor" stroke-width="2.5"/><path d="M11 12H21M11 17H21M11 22H18" stroke="currentColor" stroke-width="2.5" stroke-linecap="square"/></svg>
+                        </span>
+                        <span><b>2.</b><span>Type your secret text</span></span>
+                    </li>
+                    <li>
+                        <span class="step-icon" aria-hidden="true">
+                            <svg viewBox="0 0 32 32" fill="none"><path d="M10 14V10A6 6 0 0 1 22 10V14" stroke="currentColor" stroke-width="2.5"/><path d="M7 14H25V27H7V14Z" stroke="currentColor" stroke-width="2.5"/><circle cx="16" cy="20" r="1.5" fill="currentColor"/><path d="M16 21.5V24" stroke="currentColor" stroke-width="2.5"/></svg>
+                        </span>
+                        <span><b>3.</b><span>Set a password key</span></span>
+                    </li>
+                    <li>
+                        <span class="step-icon" aria-hidden="true">
+                            <svg viewBox="0 0 32 32" fill="none"><path d="M16 4V20M10 14L16 20L22 14M6 22V27H26V22" stroke="currentColor" stroke-width="2.5" stroke-linecap="square" stroke-linejoin="miter"/></svg>
+                        </span>
+                        <span><b>4.</b><span>Download &amp; share safely</span></span>
+                    </li>
+                </ol>
+                <div class="guide-stamp" aria-hidden="true">
+                    <span>PRIVATE BY</span>
+                    <strong>DESIGN</strong>
+                    <span class="stamp-lock">▣</span>
+                </div>
+            </aside>
+
+            <aside class="credit-card" aria-label="Author credit">
+                <p class="credit-name">Made by <strong>Kunal Choudhary</strong></p>
+                <a class="github-link" href="https://github.com/Kunal-Choudhary-XSec" target="_blank" rel="noopener noreferrer">
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                        <path d="M12 .9a11.1 11.1 0 0 0-3.51 21.63c.56.1.76-.24.76-.54v-2.1c-3.1.67-3.76-1.32-3.76-1.32-.5-1.28-1.24-1.62-1.24-1.62-1.01-.69.08-.68.08-.68 1.12.08 1.71 1.15 1.71 1.15 1 .1.56 2.67 3.2 1.9.1-.72.39-1.21.7-1.49-2.48-.28-5.09-1.24-5.09-5.51 0-1.22.44-2.22 1.15-3-.12-.28-.5-1.42.11-2.96 0 0 .94-.3 3.05 1.15a10.6 10.6 0 0 1 5.55 0c2.11-1.45 3.05-1.15 3.05-1.15.61 1.54.23 2.68.11 2.96.72.78 1.15 1.78 1.15 3 0 4.28-2.62 5.23-5.11 5.5.4.35.76 1.03.76 2.08v3.09c0 .3.2.65.77.54A11.1 11.1 0 0 0 12 .9Z"/>
+                    </svg>
+                    <span>VISIT GITHUB</span>
+                </a>
+            </aside>
+        </div>
+    </main>
+
+    <script>
+        const layout = document.querySelector(".layout");
+        const form = document.querySelector("#vault-form");
+        const tabs = document.querySelectorAll(".tab");
+        const messageField = document.querySelector("#message-field");
+        const messageInput = document.querySelector("#message");
+        const actionButton = document.querySelector("#action-button");
+        const passwordInput = document.querySelector("#password");
+        const passwordToggle = document.querySelector("#password-toggle");
+        const fileInput = document.querySelector("#image-file");
+        const uploadBox = document.querySelector("#upload-box");
+        const uploadEmpty = document.querySelector("#upload-empty");
+        const imagePreview = document.querySelector("#image-preview");
+        const previewImage = document.querySelector("#preview-image");
+        const fileName = document.querySelector("#file-name");
+        const clientError = document.querySelector("#client-error");
+        const operationStatus = document.querySelector("#operation-status");
+        const resultPanel = document.querySelector("#result-panel");
+        const revealedMessage = document.querySelector("#revealed-message");
+        const copyButton = document.querySelector("#copy-button");
+        const copyStatus = document.querySelector("#copy-status");
+        let previewUrl = null;
+
+        function showClientError(message) {
+            clientError.textContent = message;
+            clientError.hidden = false;
+            operationStatus.hidden = true;
+            resultPanel.hidden = true;
+            copyStatus.textContent = "";
+        }
+
+        function clearImage() {
+            if (previewUrl) {
+                URL.revokeObjectURL(previewUrl);
+                previewUrl = null;
+            }
+            fileInput.value = "";
+            previewImage.removeAttribute("src");
+            fileName.textContent = "";
+            imagePreview.hidden = true;
+            uploadEmpty.hidden = false;
+            resultPanel.hidden = true;
+            operationStatus.hidden = true;
+        }
+
+        function setMode(mode) {
+            const isHideMode = mode === "hide";
+            if (layout.dataset.mode !== mode) {
+                clientError.hidden = true;
+                operationStatus.hidden = true;
+                resultPanel.hidden = true;
+                copyStatus.textContent = "";
+            }
+            layout.dataset.mode = mode;
+            form.action = isHideMode ? "{{ url_for('hide') }}" : "{{ url_for('reveal') }}";
+            messageField.hidden = !isHideMode;
+            messageInput.required = isHideMode;
+            messageInput.disabled = !isHideMode;
+            actionButton.textContent = isHideMode ? "HIDE & DOWNLOAD PNG" : "UNLOCK MESSAGE";
+
+            tabs.forEach((tab) => {
+                const isSelected = tab.dataset.mode === mode;
+                tab.setAttribute("aria-selected", String(isSelected));
+                tab.tabIndex = isSelected ? 0 : -1;
+            });
+        }
+
+        tabs.forEach((tab) => {
+            tab.addEventListener("click", () => setMode(tab.dataset.mode));
+        });
+
+        document.querySelector("#browse-button").addEventListener("click", () => fileInput.click());
+        actionButton.addEventListener("click", () => {
+            if (!fileInput.files.length) {
+                showClientError("Choose a PNG image first.");
+            }
+        });
+
+        function showFile(file) {
+            if (!file) return;
+            const isPng = file.type === "image/png" || (
+                !file.type && file.name.toLowerCase().endsWith(".png")
+            );
+            if (!isPng) {
+                clearImage();
+                showClientError("Please choose a PNG image.");
+                return;
+            }
+
+            const transfer = new DataTransfer();
+            transfer.items.add(file);
+            fileInput.files = transfer.files;
+            clientError.hidden = true;
+            operationStatus.hidden = true;
+            resultPanel.hidden = true;
+            copyStatus.textContent = "";
+            if (previewUrl) URL.revokeObjectURL(previewUrl);
+            previewUrl = URL.createObjectURL(file);
+            fileName.textContent = file.name;
+            previewImage.src = previewUrl;
+            uploadEmpty.hidden = true;
+            imagePreview.hidden = false;
+        }
+
+        fileInput.addEventListener("change", () => showFile(fileInput.files[0]));
+        messageInput.addEventListener("input", () => {
+            clientError.hidden = true;
+        });
+        previewImage.addEventListener("error", () => {
+            if (previewUrl && previewImage.src === previewUrl) {
+                clearImage();
+                showClientError("This file could not be previewed. Choose a valid PNG image.");
+            }
+        });
+
+        form.addEventListener("submit", async (event) => {
+            event.preventDefault();
+            if (!fileInput.files.length) {
+                showClientError("Choose a PNG image first.");
+                document.querySelector("#browse-button").focus();
+                return;
+            }
+
+            const mode = layout.dataset.mode;
+            const formData = new FormData(form);
+            clientError.hidden = true;
+            operationStatus.hidden = true;
+            resultPanel.hidden = true;
+            copyStatus.textContent = "";
+            actionButton.disabled = true;
+            actionButton.setAttribute("aria-busy", "true");
+            actionButton.textContent = mode === "hide" ? "ENCRYPTING..." : "UNLOCKING...";
+            tabs.forEach((tab) => { tab.disabled = true; });
+
+            try {
+                const response = await fetch(form.action, {
+                    method: "POST",
+                    headers: { "X-PhotoLock-Request": "async" },
+                    body: formData,
+                });
+                if (!response.ok) {
+                    const contentType = response.headers.get("content-type") || "";
+                    const details = contentType.includes("application/json")
+                        ? await response.json()
+                        : {};
+                    throw new Error(details.error || "The server could not process this image.");
+                }
+
+                if (mode === "hide") {
+                    const contentType = response.headers.get("content-type") || "";
+                    if (!contentType.includes("image/png")) {
+                        throw new Error("The server did not return a PNG download.");
+                    }
+                    const imageUrl = URL.createObjectURL(await response.blob());
+                    const downloadLink = document.createElement("a");
+                    downloadLink.href = imageUrl;
+                    downloadLink.download = "photolock_image.png";
+                    document.body.appendChild(downloadLink);
+                    downloadLink.click();
+                    downloadLink.remove();
+                    setTimeout(() => URL.revokeObjectURL(imageUrl), 1000);
+                    operationStatus.textContent = "Your encrypted PNG is ready to download.";
+                    operationStatus.hidden = false;
+                } else {
+                    const result = await response.json();
+                    revealedMessage.textContent = result.message;
+                    resultPanel.hidden = false;
+                    operationStatus.textContent = "Message unlocked. Copy it or keep this page open.";
+                    operationStatus.hidden = false;
+                }
+            } catch (error) {
+                showClientError(error.message || "Something went wrong. Please try again.");
+            } finally {
+                actionButton.disabled = false;
+                actionButton.removeAttribute("aria-busy");
+                actionButton.textContent = mode === "hide" ? "HIDE & DOWNLOAD PNG" : "UNLOCK MESSAGE";
+                tabs.forEach((tab) => { tab.disabled = false; });
+            }
+        });
+        uploadBox.addEventListener("dragover", (event) => {
+            event.preventDefault();
+            uploadBox.classList.add("is-dragging");
+        });
+        uploadBox.addEventListener("dragleave", () => uploadBox.classList.remove("is-dragging"));
+        uploadBox.addEventListener("drop", (event) => {
+            event.preventDefault();
+            uploadBox.classList.remove("is-dragging");
+            showFile(event.dataTransfer.files[0]);
+        });
+
+        document.querySelector("#clear-button").addEventListener("click", () => {
+            clearImage();
+            clientError.hidden = true;
+        });
+
+        passwordInput.addEventListener("input", () => {
+            clientError.hidden = true;
+            if (layout.dataset.mode === "reveal") {
+                resultPanel.hidden = true;
+                operationStatus.hidden = true;
+                copyStatus.textContent = "";
+            }
+        });
+
+        passwordToggle.addEventListener("click", () => {
+            const shouldShow = passwordInput.type === "password";
+            passwordInput.type = shouldShow ? "text" : "password";
+            passwordToggle.setAttribute("aria-label", shouldShow ? "Hide password" : "Show password");
+            passwordToggle.title = shouldShow ? "Hide password" : "Show password";
+        });
+
+        copyButton.addEventListener("click", async () => {
+            let temporaryInput = null;
+            copyButton.disabled = true;
+            copyButton.textContent = "COPYING...";
+            try {
+                if (navigator.clipboard && window.isSecureContext) {
+                    await navigator.clipboard.writeText(revealedMessage.textContent);
+                } else {
+                    temporaryInput = document.createElement("textarea");
+                    temporaryInput.value = revealedMessage.textContent;
+                    temporaryInput.style.position = "fixed";
+                    temporaryInput.style.opacity = "0";
+                    document.body.appendChild(temporaryInput);
+                    temporaryInput.select();
+                    const copied = document.execCommand("copy");
+                    if (!copied) throw new Error("Clipboard copy was not available.");
+                }
+                copyStatus.textContent = "Message copied.";
+            } catch (_error) {
+                copyStatus.textContent = "Copy failed. Select the message and copy it manually.";
+            } finally {
+                if (temporaryInput) temporaryInput.remove();
+                copyButton.disabled = false;
+                copyButton.textContent = "COPY MESSAGE";
+            }
+        });
+
+        setMode(layout.dataset.mode);
+    </script>
+</body>
+</html>
